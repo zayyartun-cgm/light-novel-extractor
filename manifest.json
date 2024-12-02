@@ -3,13 +3,16 @@
   "name": "Light Novel Extractor",
   "version": "1.0",
   "description": "Extract light novel content from lightnovelworld.com and generate EPUB file",
-  "permissions": ["activeTab", "unlimitedStorage", "downloads"],
+  "permissions": ["activeTab", "storage", "unlimitedStorage"],
   "content_scripts": [
     {
       "matches": ["*://www.lightnovelworld.com/*"],
       "js": ["content.js"]
     }
   ],
+  "background": {
+    "scripts": ["background.js"]
+  },
   "browser_action": {
     "default_title": "Light Novel Extractor",
     "default_popup": "popup/popup.html"

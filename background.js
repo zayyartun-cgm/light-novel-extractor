@@ -72,87 +72,112 @@ async function generateEPUB(data) {
   const endChapter = data[data.length - 1].no;
 
   const zip = new JSZip();
+
   // Add EPUB structure
-  zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
+  zip.file("mimetype", "application/epub+zip");
+
+  // Add META-INF/container.xml
   zip.file(
     "META-INF/container.xml",
-    `
-    <?xml version="1.0" encoding="UTF-8"?>
-    <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
-      <rootfiles>
+    `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+    <rootfiles>
         <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-      </rootfiles>
-    </container>
+   </rootfiles>
+</container>`
+  );
+
+  // Add OEBPS/content.opf
+  const manifest = data
+    .map(
+      (item, index) => `
+      <item id="chapter${index}.xhtml" href="Text/chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`
+    )
+    .join("\n");
+
+  const spine = data.map((_, index) => `<itemref idref="chapter${index + 1}.xhtml"/>`).join("\n");
+
+  zip.file(
+    "OEBPS/content.opf",
+    `
+    <?xml version="1.0" encoding="utf-8"?>
+    <package version="3.0" unique-identifier="bookid" xmlns="http://www.idpf.org/2007/opf" xml:lang="en">
+      <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <dc:identifier id="bookid">${crypto.randomUUID()}</dc:identifier>
+        <dc:title>${bookName}</dc:title>
+        <dc:creator>Generated EPUB</dc:creator>
+        <dc:language>en</dc:language>
+        <meta property="dcterms:modified">${new Date().toISOString()}</meta>
+        <meta content="0.9.14" name="Sigil version" />
+      </metadata>
+      <manifest>
+        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+        ${manifest}
+      </manifest>
+      <spine page-progression-direction="ltr" toc="ncx">
+        ${spine}
+      </spine>
+    </package>
     `
   );
 
-  var metadata = `<?xml version="1.0"?>
-    <package version="3.0" xml:lang="en" xmlns="http://www.idpf.org/2007/opf" unique-identifier="book-id">
-        <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-            <dc:identifier id="book-id">urn:uuid:B9B412F2-CAAD-4A44-B91F-A375068478A0</dc:identifier>
-            <meta refines="#book-id" property="identifier-type" scheme="xsd:string">uuid</meta>
-            <meta property="dcterms:modified">${new Date().toISOString()}</meta>
-            <dc:language>en</dc:language>
-            <dc:title>${bookName}</dc:title>
-            <dc:creator>Zay Yar Tun</dc:creator>
-        </metadata>
-        <manifest>
-            <item id="text" href="text.xhtml" media-type="application/xhtml+xml"/>
-            <item id="toc" href="../OEBPS/toc.ncx" media-type="application/x-dtbncx+xml"/>
-        </manifest>
-        <spine toc="toc">
-            <itemref idref="text"/>
-        </spine>
-    </package>
-  `;
-  zip.file("OEBPS/content.opf", metadata);
+  // Add OEBPS/toc.ncx
+  const navPoints = data
+    .map(
+      (item, index) => `
+      <navPoint id="navPoint${index + 1}">
+        <navLabel><text>Chapter ${item.no}: ${item.chapter}</text></navLabel>
+        <content src="Text/chapter${index + 1}.xhtml"/>
+      </navPoint>`
+    )
+    .join("\n");
 
-  let navMap = ``;
-
-  data.forEach((item, index) => {
-    navMap += `<navPoint id="navpoint-${index}" playOrder="${index}">
-  <navLabel><text>Chapter ${item.no}: ${item.chapter}</text></navLabel><content src="text.xhtml#xpointer(/html/body/section[${index}])"/>`;
-  });
-
-  // Set the table of contents for the book
-  var toc = `<?xml version="1.0"?>
+  zip.file(
+    "OEBPS/toc.ncx",
+    `
+    <?xml version="1.0" encoding="UTF-8"?>
     <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
-        <head>
-            <meta name="dtb:uid" content="urn:uuid:B9B412F2-CAAD-4A44-B91F-A375068478A0"/>
-            <meta name="dtb:depth" content="1"/>
-            <meta name="dtb:totalPageCount" content="0"/>
-            <meta name="dtb:maxPageNumber" content="0"/>
-        </head>
-        <docTitle>
-            <text>${bookName}</text>
-        </docTitle>
-        <navMap>
-            ${navMap}
-        </navMap>
-    </ncx>`;
-  zip.file("OEBPS/toc.ncx", toc);
+      <head>
+        <meta name="dtb:uid" content="urn:uuid:${crypto.randomUUID()}"/>
+        <meta name="dtb:depth" content="1"/>
+        <meta name="dtb:totalPageCount" content="0"/>
+        <meta name="dtb:maxPageNumber" content="0"/>
+      </head>
+      <docTitle>
+        <text>${bookName}</text>
+      </docTitle>
+      <navMap>
+        ${navPoints}
+      </navMap>
+    </ncx>
+    `
+  );
 
-  let content = ``;
-
-  data.forEach((item) => {
-    // console.log(item.content);
+  // Add chapter files
+  data.forEach((item, index) => {
     const detailContent = item.content.split("\n");
     const contentElement = detailContent.map((item) => `<p>${item}</p>`).join("");
-    content += `<section><h1 style="text-align: center;">Chapter ${item.no}</h1>${contentElement}</section>`;
-  });
 
-  // Add the text of the book to the ZIP file
-  var text = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <!DOCTYPE html>
-    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en" lang="en">
+    zip.file(
+      `OEBPS/Text/chapter${index + 1}.xhtml`,
+      `
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE html>
+      <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
         <head>
-            <title>${bookName}</title>
+          <meta content="text/html; charset=UTF-8" http-equiv="default-style"/>
+          <title>Chapter ${item.no}: ${item.chapter}</title>
         </head>
         <body>
-           ${content}
+          <section epub:type="bodymatter chapter" id="chapter${index + 1}">
+            <h1 style="text-align: center;">Chapter ${item.no}: ${item.chapter}</h1>
+            ${contentElement}
+          </section>
         </body>
-    </html>`;
-  zip.file("OEBPS/text.xhtml", text);
+      </html>
+      `
+    );
+  });
 
   // Generate a downloadable EPUB file from the ZIP file
   const blob = await zip.generateAsync({ type: "blob" });

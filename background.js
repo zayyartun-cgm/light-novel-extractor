@@ -70,28 +70,29 @@ async function generateEPUB(data) {
   const bookName = data[0].name;
   const startChapter = data[0].no;
   const endChapter = data[data.length - 1].no;
+  const uuid = crypto.randomUUID();
 
   const zip = new JSZip();
 
   // Add EPUB structure
-  zip.file("mimetype", "application/epub+zip");
+  zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
 
   // Add META-INF/container.xml
   zip.file(
     "META-INF/container.xml",
     `<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-    <rootfiles>
-        <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-   </rootfiles>
-</container>`
+      <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+          <rootfiles>
+              <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+        </rootfiles>
+      </container>`
   );
 
   // Add OEBPS/content.opf
   const manifest = data
     .map(
-      (item, index) => `
-      <item id="chapter${index}.xhtml" href="Text/chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`
+      (_, index) => `
+      <item id="chapter${index + 1}.xhtml" href="Text/chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`
     )
     .join("\n");
 
@@ -99,26 +100,28 @@ async function generateEPUB(data) {
 
   zip.file(
     "OEBPS/content.opf",
-    `
-    <?xml version="1.0" encoding="utf-8"?>
-    <package version="3.0" unique-identifier="bookid" xmlns="http://www.idpf.org/2007/opf" xml:lang="en">
+    `<?xml version="1.0" encoding="UTF-8"?>
+      <package version="3.0" unique-identifier="book-id" xmlns="http://www.idpf.org/2007/opf" xml:lang="en">
       <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-        <dc:identifier id="bookid">${crypto.randomUUID()}</dc:identifier>
+        <dc:identifier id="book-id">${uuid}</dc:identifier>
         <dc:title>${bookName}</dc:title>
         <dc:creator>Generated EPUB</dc:creator>
         <dc:language>en</dc:language>
-        <meta property="dcterms:modified">${new Date().toISOString()}</meta>
-        <meta content="0.9.14" name="Sigil version" />
+        <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
       </metadata>
       <manifest>
-        <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+        <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+        <item id="nav.xhtml" href="Text/nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
         ${manifest}
       </manifest>
-      <spine page-progression-direction="ltr" toc="ncx">
+      <spine page-progression-direction="ltr" toc="toc">
+        <itemref idref="nav.xhtml" />
         ${spine}
       </spine>
-    </package>
-    `
+      <guide>
+        <reference type="toc" title="Table of Contents" href="Text/nav.xhtml"/>
+      </guide>
+    </package>`
   );
 
   // Add OEBPS/toc.ncx
@@ -134,11 +137,10 @@ async function generateEPUB(data) {
 
   zip.file(
     "OEBPS/toc.ncx",
-    `
-    <?xml version="1.0" encoding="UTF-8"?>
+    `<?xml version="1.0" encoding="UTF-8"?>
     <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
       <head>
-        <meta name="dtb:uid" content="urn:uuid:${crypto.randomUUID()}"/>
+        <meta name="dtb:uid" content="${uuid}"/>
         <meta name="dtb:depth" content="1"/>
         <meta name="dtb:totalPageCount" content="0"/>
         <meta name="dtb:maxPageNumber" content="0"/>
@@ -149,8 +151,26 @@ async function generateEPUB(data) {
       <navMap>
         ${navPoints}
       </navMap>
-    </ncx>
-    `
+    </ncx>`
+  );
+
+  zip.file(
+    "OEBPS/Text/nav.xhtml",
+    `<?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE html>
+    <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+      <head>
+        <title>Navigation</title>
+      </head>
+      <body>
+        <nav epub:type="toc">
+          <h1>Table of Contents</h1>
+          <ul>
+            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml">Chapter ${item.no}: ${item.chapter}</a></li>`).join("\n")}
+          </ul>
+        </nav>
+      </body>
+    </html>`
   );
 
   // Add chapter files
@@ -160,8 +180,7 @@ async function generateEPUB(data) {
 
     zip.file(
       `OEBPS/Text/chapter${index + 1}.xhtml`,
-      `
-      <?xml version="1.0" encoding="UTF-8"?>
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <!DOCTYPE html>
       <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en" xml:lang="en">
         <head>
@@ -174,8 +193,7 @@ async function generateEPUB(data) {
             ${contentElement}
           </section>
         </body>
-      </html>
-      `
+      </html>`
     );
   });
 

@@ -71,6 +71,8 @@ async function generateEPUB(data) {
   const startChapter = data[0].no;
   const endChapter = data[data.length - 1].no;
   const uuid = crypto.randomUUID();
+  const fileName = startChapter === endChapter ? `${bookName} (chapter - ${startChapter}).epub` : `${bookName} (${startChapter}-${endChapter}).epub`;
+  const epubBookName = startChapter === endChapter ? `${bookName} (chapter - ${startChapter})` : `${bookName} (${startChapter}-${endChapter})`;
 
   const zip = new JSZip();
 
@@ -104,7 +106,7 @@ async function generateEPUB(data) {
       <package version="3.0" unique-identifier="book-id" xmlns="http://www.idpf.org/2007/opf" xml:lang="en">
       <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
         <dc:identifier id="book-id">${uuid}</dc:identifier>
-        <dc:title>${bookName}</dc:title>
+        <dc:title>${epubBookName}</dc:title>
         <dc:creator>Generated EPUB</dc:creator>
         <dc:language>en</dc:language>
         <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
@@ -146,7 +148,7 @@ async function generateEPUB(data) {
         <meta name="dtb:maxPageNumber" content="0"/>
       </head>
       <docTitle>
-        <text>${bookName}</text>
+        <text>${epubBookName}</text>
       </docTitle>
       <navMap>
         ${navPoints}
@@ -201,12 +203,10 @@ async function generateEPUB(data) {
   const blob = await zip.generateAsync({ type: "blob" });
   const url = URL.createObjectURL(blob);
 
-  const name = startChapter === endChapter ? `${bookName} (chapter - ${startChapter}).epub` : `${bookName} (${startChapter}-${endChapter}).epub`;
-
   // Trigger download
   await browser.downloads.download({
     url: url,
-    filename: name,
+    filename: fileName,
     saveAs: true,
   });
 }

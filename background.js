@@ -165,10 +165,10 @@ async function generateEPUB(data) {
         <title>Navigation</title>
       </head>
       <body>
-        <nav epub:type="toc">
-          <h1>Table of Contents</h1>
-          <ul>
-            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml">Chapter ${item.no}: ${item.chapter}</a></li>`).join("\n")}
+        <nav epub:type="toc" style="padding: 0 8px;">
+          <h2>Table of Contents</h2>
+          <ul style="list-style-type: none; padding: 0;">
+            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}: ${item.chapter}</a></li>`).join("\n")}
           </ul>
         </nav>
       </body>
@@ -178,7 +178,7 @@ async function generateEPUB(data) {
   // Add chapter files
   data.forEach((item, index) => {
     const detailContent = item.content.split("\n");
-    const contentElement = detailContent.map((item) => `<p>${item}</p>`).join("");
+    const contentElement = detailContent.map((item) => `<p style="text-align: justify;">${item}</p>`).join("");
 
     zip.file(
       `OEBPS/Text/chapter${index + 1}.xhtml`,
@@ -191,7 +191,7 @@ async function generateEPUB(data) {
         </head>
         <body>
           <section epub:type="bodymatter chapter" id="chapter${index + 1}">
-            <h1 style="text-align: center;">Chapter ${item.no}: ${item.chapter}</h1>
+            <h2 style="text-align: center;">Chapter ${item.no}: ${item.chapter}</h2>
             ${contentElement}
           </section>
         </body>

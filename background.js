@@ -131,7 +131,7 @@ async function generateEPUB(data) {
     .map(
       (item, index) => `
       <navPoint id="navPoint${index + 1}">
-        <navLabel><text>Chapter ${item.no}: ${item.chapter}</text></navLabel>
+        <navLabel><text>Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</text></navLabel>
         <content src="Text/chapter${index + 1}.xhtml"/>
       </navPoint>`
     )
@@ -168,7 +168,7 @@ async function generateEPUB(data) {
         <nav epub:type="toc" style="padding: 0 8px;">
           <h2>Table of Contents</h2>
           <ul style="list-style-type: none; padding: 0;">
-            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}: ${item.chapter}</a></li>`).join("\n")}
+            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</a></li>`).join("\n")}
           </ul>
         </nav>
       </body>
@@ -191,7 +191,7 @@ async function generateEPUB(data) {
         </head>
         <body>
           <section epub:type="bodymatter chapter" id="chapter${index + 1}">
-            <h2 style="text-align: center;">Chapter ${item.no}: ${item.chapter}</h2>
+            <h2 style="text-align: center;">Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</h2>
             ${contentElement}
           </section>
         </body>

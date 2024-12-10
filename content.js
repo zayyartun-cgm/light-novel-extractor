@@ -39,34 +39,49 @@ function showToast(message) {
 async function extractContent() {
   const title = document.title;
   const extractedTitle = title.split("|")[0].trim();
-  const [novelName, chapterName] = extractedTitle.split("-").map((part) => part.trim());
-  const chapterNameParts = chapterName.split(":");
-  const chapterNo = Number(chapterNameParts[0].split(" ")[1]);
-  const contentDiv = document.getElementById("chapter-container");
-  if (contentDiv) {
-    const paragraphs = contentDiv.querySelectorAll("p");
-    const content = Array.from(paragraphs)
-      .map((p) => p.innerHTML)
-      .join("\n");
+  const extractedTitleParts = extractedTitle.split("-");
+  const [novelName, fullChapterName] = extractedTitleParts.map((part) => part.trim());
+  const chapterNameParts = fullChapterName.split(":");
 
-    // retrieve existing data
-    const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
-    let addNew = true;
-    for (let i = 0; i < existingData.length; i++) {
-      if (existingData[i].chapter === chapterNameParts[1].trim() && existingData[i].name === novelName) {
-        addNew = false;
-        break;
-      }
-    }
-    if (addNew) existingData.push({ name: novelName, no: chapterNo, chapter: chapterNameParts[1].trim(), content: content });
+  let chapterName = "",
+    chapterNo = 0;
+  if (chapterNameParts[1] !== undefined) chapterName = chapterNameParts[1].trim();
 
-    existingData.sort((a, b) => a.no - b.no);
-    console.log(existingData);
-    await browser.storage.local.set({ novelData: existingData, recording: isRecording });
-
-    const no = existingData.map((item) => item.no);
-    browser.runtime.sendMessage({ command: "result", data: { recording: isRecording, no: no } });
+  if (chapterNameParts[0] === undefined || !chapterNameParts[0].trim().toLowerCase().startsWith("chapter")) {
+    console.error("The chapter number cannot be extracted");
+    return;
   }
+
+  chapterNo = Number(chapterNameParts[0].trim().split(" ")[1]);
+
+  const contentDiv = document.getElementById("chapter-container");
+  if (!contentDiv) {
+    console.error("The content cannot be extracted");
+    return;
+  }
+
+  const paragraphs = contentDiv.querySelectorAll("p");
+  const content = Array.from(paragraphs)
+    .map((p) => p.textContent.trim())
+    .join("\n");
+
+  // retrieve existing data
+  const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
+  let addNew = true;
+  for (let i = 0; i < existingData.length; i++) {
+    if (existingData[i].chapter === chapterName && existingData[i].name === novelName) {
+      addNew = false;
+      break;
+    }
+  }
+  if (addNew) existingData.push({ name: novelName, no: chapterNo, chapter: chapterName, content: content });
+
+  existingData.sort((a, b) => a.no - b.no);
+  console.log(existingData);
+  await browser.storage.local.set({ novelData: existingData, recording: isRecording });
+
+  const no = existingData.map((item) => item.no);
+  browser.runtime.sendMessage({ command: "result", data: { recording: isRecording, no: no } });
 }
 
 async function initialize() {

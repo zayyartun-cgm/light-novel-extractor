@@ -78,7 +78,9 @@ initialize();
 
 browser.runtime.onMessage.addListener(async (message) => {
   if (message.command === "clear-all") {
-    await browser.storage.local.set({ recording: isRecording });
+    await browser.storage.local.set({ recording: isRecording, novelData: [] });
+    const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
+    console.log(existingData);
     showToast("All saved pages cleared.");
   } else if (message.command === "start-recording") {
     isRecording = true;

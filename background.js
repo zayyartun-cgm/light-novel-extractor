@@ -1,4 +1,5 @@
 let isRecording = false;
+let coverImage;
 
 // Create a context menu
 browser.contextMenus.create({
@@ -79,6 +80,11 @@ async function generateEPUB(data) {
   // Add EPUB structure
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
 
+  const imageData = coverImage.split(",")[1]; // Extract base64 data
+  const imageType = coverImage.match(/^data:(image\/[a-z]+);base64/)[1]; // Extract MIME type
+  const imageExtension = imageType.split("/")[1]; // Extract extension (e.g., jpg, png)
+  zip.file(`OEBPS/Images/cover.${imageExtension}`, imageData, { base64: true });
+
   // Add META-INF/container.xml
   zip.file(
     "META-INF/container.xml",
@@ -110,18 +116,22 @@ async function generateEPUB(data) {
         <dc:creator>Generated EPUB</dc:creator>
         <dc:language>en</dc:language>
         <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
+        <meta name="cover" content="cover"/>
       </metadata>
       <manifest>
+        <item id="titlepage.xhtml" href="Text/titlepage.xhtml" media-type="application/xhtml+xml"/>
         <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
         <item id="nav.xhtml" href="Text/nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
         ${manifest}
       </manifest>
       <spine page-progression-direction="ltr" toc="toc">
+        <itemref idref="titlepage.xhtml"/>
         <itemref idref="nav.xhtml" />
         ${spine}
       </spine>
       <guide>
         <reference type="toc" title="Table of Contents" href="Text/nav.xhtml"/>
+        <reference type="cover" href="Text/titlepage.xhtml" title="Cover"/>
       </guide>
     </package>`
   );
@@ -175,6 +185,30 @@ async function generateEPUB(data) {
     </html>`
   );
 
+  zip.file(
+    `OEBPS/Text/titlepage.xhtml`,
+    `<?xml version='1.0' encoding='utf-8'?>
+      <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+          <head>
+              <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+              <meta name="calibre:cover" content="true"/>
+              <title>Cover</title>
+              <style type="text/css" title="override_css">
+                  @page {padding: 0pt; margin:0pt}
+                  body { text-align: center; padding:0pt; margin: 0pt; }
+              </style>
+          </head>
+          <body>
+              <div>
+                  <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="100%" height="100%" viewBox="0 0 267 400" preserveAspectRatio="none">
+                    <image width="267" height="400" xlink:href="../Images/cover.${imageExtension}"/>  
+                  </svg>
+              </div>
+          </body>
+      </html>
+      `
+  );
+
   // Add chapter files
   data.forEach((item, index) => {
     const detailContent = item.content.split("\n");
@@ -217,9 +251,15 @@ browser.runtime.onMessage.addListener(async (message) => {
     isRecording = data.recording;
     updateRecordingSubmenu(isRecording);
   } else if (message.command === "epub") {
+    if (!coverImage) {
+      console.error("Cover image not available");
+      return;
+    }
     isRecording = false;
     updateRecordingSubmenu(isRecording);
     const data = message.data;
     await generateEPUB(data);
+  } else if (message.command === "set-cover-image") {
+    coverImage = message.image;
   }
 });

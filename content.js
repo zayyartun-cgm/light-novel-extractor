@@ -108,9 +108,37 @@ browser.runtime.onMessage.addListener(async (message) => {
   } else if (message.command === "extract-epub") {
     const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
     if (existingData.length > 0) {
-      browser.runtime.sendMessage({ command: "epub", data: existingData });
-      await browser.storage.local.clear();
-      showToast("Extracting EPUB File...");
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      showToast("Please upload the cover image.");
+
+      input.addEventListener("change", (event) => {
+        const file = event.target.files[0]; // Get the selected file
+
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            // Send the base64 image back to the background script
+            browser.runtime.sendMessage({
+              command: "set-cover-image",
+              image: reader.result, // Base64-encoded image
+            });
+
+            browser.runtime.sendMessage({ command: "epub", data: existingData });
+            await browser.storage.local.clear();
+            showToast("Extracting EPUB File...");
+          };
+          reader.readAsDataURL(file); // Convert the image file to base64
+        }
+      });
+
+      // Detect when the dialog is closed without selecting a file
+      input.addEventListener("cancel", () => {
+        showToast("You need to upload the cover image."); // Show message if no file is selected
+      });
+
+      input.click(); // Trigger the file input
     } else {
       showToast("No data to extract.");
     }

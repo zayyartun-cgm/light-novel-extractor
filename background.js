@@ -68,7 +68,7 @@ function updateRecordingSubmenu(isRecording) {
 }
 
 async function generateEPUB(data) {
-  const bookName = data[0].name;
+  const bookName = data[0].name.replace(/[\\/:?"<>|]/g, "");
   const startChapter = data[0].no;
   const endChapter = data[data.length - 1].no;
   const uuid = crypto.randomUUID();

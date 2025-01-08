@@ -38,21 +38,45 @@ function showToast(message) {
 
 async function extractContent() {
   const title = document.title;
+  console.log(title);
+
+  if (title.toLowerCase().startsWith("just a moment...")) return;
+
   const extractedTitle = title.split("|")[0].trim();
   const extractedTitleParts = extractedTitle.split("-");
-  const [novelName, fullChapterName] = extractedTitleParts.map((part) => part.trim());
-  const chapterNameParts = fullChapterName.split(":");
 
-  let chapterName = "",
-    chapterNo = 0;
-  if (chapterNameParts[1] !== undefined) chapterName = chapterNameParts[1].trim();
+  // Extract the novel name and full chapter name
+  let novelName = extractedTitleParts[0].trim(); // Default to the first part
+  let fullChapterName = extractedTitleParts[1]?.trim() || ""; // Default to empty if undefined
 
-  if (chapterNameParts[0] === undefined || !chapterNameParts[0].trim().toLowerCase().startsWith("chapter")) {
-    console.error("The chapter number cannot be extracted");
-    return;
+  // Check if the first part contains "Book" and adjust the novel name accordingly
+  if (novelName.toLowerCase().includes("book")) {
+    // Merge the book title with the novel name
+    novelName = `${extractedTitleParts[0].trim()} ${extractedTitleParts[1]?.trim() || ""}`.replace(/\s+/, " ");
+    fullChapterName = extractedTitleParts[2]?.trim() || ""; // Move to the next part for chapter name
   }
 
-  chapterNo = Number(chapterNameParts[0].trim().split(" ")[1]);
+  // Extract chapter number and name from the full chapter name
+  let chapterName = "";
+  let chapterNo = 0;
+
+  console.log("Full Chapter Name:", fullChapterName);
+  if (fullChapterName) {
+    const chapterNameParts = fullChapterName.match(/Chapter\s*(\d+):?\s*(.*)?/i); // Use regex for better matching
+
+    console.log(chapterNameParts);
+    if (chapterNameParts) {
+      chapterNo = parseInt(chapterNameParts[1], 10) || 0; // Extract chapter number
+      chapterName = chapterNameParts[2]?.trim() || ""; // Extract chapter name
+    } else {
+      console.error("The chapter number cannot be extracted");
+      return;
+    }
+  }
+
+  console.log("Novel Name:", novelName);
+  console.log("Chapter Number:", chapterNo);
+  console.log("Chapter Name:", chapterName);
 
   const contentDiv = document.getElementById("chapter-container");
   if (!contentDiv) {
@@ -65,7 +89,7 @@ async function extractContent() {
     .map((p) => p.textContent.trim())
     .join("\n");
 
-  // retrieve existing data
+  // Retrieve existing data
   const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
   let addNew = true;
   for (let i = 0; i < existingData.length; i++) {

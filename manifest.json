@@ -22,5 +22,5 @@
     "default_title": "Light Novel Extractor",
     "default_popup": "popup/popup.html"
   },
-  "web_accessible_resources": ["icons/screen-record.svg"]
+  "web_accessible_resources": ["icons/screen-record.svg", "icons/delete_forever.svg", "icons/menu_book.svg", "icons/radio_button_checked.svg", "background.js", "jszip.min.js"]
 }

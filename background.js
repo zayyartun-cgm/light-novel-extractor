@@ -70,6 +70,14 @@ browser.contextMenus.create({
   contexts: ["page"],
 });
 
+async function initialize() {
+  const result = await browser.storage.local.get("recording");
+  isRecording = result.recording ?? false;
+  updateRecordingSubmenu(isRecording);
+}
+
+initialize();
+
 // Add a listener for when the menu item is clicked
 browser.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "save") {

@@ -8,8 +8,8 @@ function showToast(message) {
 
   // Apply basic styling
   toast.style.position = "fixed";
-  toast.style.bottom = "20px";
-  toast.style.right = "20px";
+  toast.style.bottom = "12px";
+  toast.style.right = "12px";
   toast.style.background = "rgba(0, 0, 0, 0.8)";
   toast.style.color = "#fff";
   toast.style.padding = "10px 15px";
@@ -66,14 +66,17 @@ async function extractContent() {
 
   if (index === -1) {
     existingData.push({ name: bookTitle, data: [{ no: chapterNo, chapter: chapterName, content: content }] });
+    showToast(`Saved: ${bookTitle} - Chapter ${chapterNo}`);
   } else {
     const isExist = existingData[index].data.some((item) => item.no === chapterNo && item.chapter === chapterName);
-    if (!isExist) existingData[index].data.push({ no: chapterNo, chapter: chapterName, content: content });
-    existingData[index].data.sort((a, b) => a.no - b.no);
+    if (!isExist) {
+      existingData[index].data.push({ no: chapterNo, chapter: chapterName, content: content });
+      existingData[index].data.sort((a, b) => a.no - b.no);
+      showToast(`Saved: ${bookTitle} - Chapter ${chapterNo}`);
+    }
   }
 
   await browser.storage.local.set({ novelData: existingData, recording: isSaving });
-  showToast(`Saved: ${bookTitle} - ${chapterName}`);
 }
 
 async function clearCurrentBook() {
@@ -117,11 +120,13 @@ browser.runtime.onMessage.addListener(async (message) => {
   } else if (message.command === "start-saving") {
     isSaving = true;
     await extractContent();
+    await updateRecordingStatus();
     browser.runtime.sendMessage({ command: "result", data: { recording: isSaving } });
     showToast("Recording started.");
   } else if (message.command === "stop-saving") {
     isSaving = false;
     await updateRecordingStatus();
+    browser.runtime.sendMessage({ command: "result", data: { recording: isSaving } });
     showToast("Recording stopped.");
   } else if (message.command === "clear-current") {
     await clearCurrentBook();

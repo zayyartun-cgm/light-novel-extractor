@@ -4,26 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saved Items</title>
+    <title>Saved Books</title>
+    <link rel="icon" type="image/png" href="../icons/icon.png">
     <link rel="stylesheet" href="../css/saved_item.css">
 </head>
 
 <body>
     <div class="header">
-        <h1>Saved Items</h1>
+        <h1>Saved Books</h1>
         <div class="header-buttons">
-            <button>Extract All</button>
-            <button>Delete All</button>
+            <button class="btn-delete-all" id="btn-delete-all" title="Delete all books">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+                    fill="#ffffff">
+                    <path
+                        d="m400-325 80-80 80 80 51-51-80-80 80-80-51-51-80 80-80-80-51 51 80 80-80 80 51 51Zm-88 181q-29.7 0-50.85-21.15Q240-186.3 240-216v-480h-48v-72h192v-48h192v48h192v72h-48v479.57Q720-186 698.85-165T648-144H312Zm336-552H312v480h336v-480Zm-336 0v480-480Z" />
+                </svg>
+            </button>
         </div>
     </div>
 
-    <div class="saved-items">
-        <div class="item">
-            <img />
-            <h3>Title</h3>
+    <table class="book-table">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Book Name</th>
+                <th>Chapters</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="book-table-data">
 
-        </div>
-    </div>
+        </tbody>
+    </table>
+
+    <script src="../js/saved_item.js"></script>
 </body>
 
 </html>

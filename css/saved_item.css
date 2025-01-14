@@ -1,30 +1,202 @@
 :root {
-    --text-primary-color: black;
+    /* Light Mode Colors */
+    --background-light-color: #f8f9fa;
+    --background-primary-color: #ffffff;
+    --text-dark-primary-color: #212529;
+    --text-secondary-color: #6c757d;
+    --table-header-color: #e9ecef;
+    --table-border-color: #dee2e6;
+    --row-alt-color: #f1f3f5;
+    --row-hover-color: #f8f9fa;
+    --action-color: #28a745;
+    --danger-color: #dc3545;
+
+    /* Dark Mode Colors */
+    --background-dark-color: #343a40;
+    --background-primary-color: #212529;
+    --text-light-primary-color: #f8f9fa;
+    --text-secondary-color: #adb5bd;
+    --table-header-dark-color: #495057;
+    --table-border-dark-color: #343a40;
+    --row-alt-dark-color: #3e4349;
+    --row-hover-dark-color: #495057;
 }
+
 
 html,
 body {
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
+    width: 70vw;
+    background-color: var(--background-light-color);
+    color: var(--text-dark-primary-color);
 }
 
 .header {
     display: flex;
     flex-direction: column;
-    width: 100vw;
+    width: 100%;
     justify-content: center;
 }
 
 .header h1 {
     text-align: center;
+    color: var(--text-dark-primary-color);
 }
 
 .header-buttons {
     display: flex;
     width: 100%;
-    justify-content: center;
+    margin: 16px auto 0 auto;
+    justify-content: flex-end;
 }
 
-.header-buttons button:first-of-type {
-    margin-right: 50px;
+.btn-delete-all, .btn-delete, .btn-extract {
+    display: inline-flex; /* Use flexbox for layout */
+    align-items: center; /* Center vertically */
+    justify-content: center; /* Center horizontally */
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: var(--danger-color);
+    outline: none;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-extract {
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    background-color: var(--action-color);
+}
+
+.btn-delete {
+    margin-left: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+}
+
+.btn-delete-all:hover:not(:disabled), .btn-delete:hover:not(:disabled), .btn-extract:hover:not(:disabled) {
+    outline-offset: 2.5px;
+    outline: 1.5px solid var(--danger-color);
+    transition: all .3s ease-in-out;
+}
+
+.btn-extract:hover:not(:disabled) {
+    outline: 1.5px solid var(--action-color);
+}
+
+.btn-delete-all:active:not(:disabled), .btn-delete:active:not(:disabled), .btn-extract:active:not(:disabled) {
+    opacity: 0.9;
+}
+
+.btn-delete-all:focus-visible, .btn-delete:focus-visible, .btn-extract:focus-visible {
+    outline-offset: 2.5px;
+    outline: 1.5px solid var(--danger-color);
+}
+
+.btn-extract:focus-visible {
+    outline: 1.5px solid var(--action-color);
+}
+
+.btn-delete-all:disabled, .btn-extract:disabled, .btn-delete:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.book-table {
+    width: 100%;
+    margin: 20px auto 0 auto;
+    border-collapse: collapse;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+    background-color: var(--background-primary-color);
+    /* Fallback for light mode */
+    color: var(--text-dark-primary-color);
+    overflow: hidden;
+    /* For rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.book-table th {
+    text-align: center;
+    font-size: 17px;
+    font-weight: bold;
+    background-color: var(--table-header-color, #f4f4f4);
+    /* Light gray for light mode */
+    color: var(--text-dark-primary-color, #000000);
+    /* Fallback for light mode */
+    padding: 12px;
+    border-bottom: 2px solid var(--table-border-color, #dddddd);
+}
+
+.book-table td {
+    text-align: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--table-border-color, #dddddd);
+    font-size: 15px;
+}
+
+.book-table td:last-child {
+    border-bottom: none;
+}
+
+
+/* Alternate row background for better readability */
+.book-table tr:nth-child(even) {
+    background-color: var(--row-alt-color, #f9f9f9);
+    /* Lighter background for alternate rows */
+}
+
+
+/* Hover effect */
+.book-table tr:hover {
+    background-color: var(--row-hover-color, #f1f1f1);
+    /* Slightly darker hover effect */
+    transition: background-color 0.2s ease;
+}
+
+@media(prefers-color-scheme: dark) {
+
+    html,
+    body {
+        background-color: var(--background-dark-color);
+        color: var(--text-light-primary-color);
+    }
+
+    .header h1 {
+        color: var(--text-light-primary-color);
+    }
+
+    .book-table {
+        background-color: var(--background-dark-primary-color, #1e1e1e);
+        /* Dark background */
+        color: var(--text-light-primary-color, #ffffff);
+        /* Light text for contrast */
+        box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+    }
+
+    .book-table th {
+        background-color: var(--table-header-dark-color, #2c2c2c);
+        /* Darker header background */
+        color: var(--text-light-primary-color, #ffffff);
+        /* Light text for contrast */
+        border-bottom: 2px solid var(--table-border-dark-color, #444444);
+    }
+
+    .book-table td {
+        border-bottom: 1px solid var(--table-border-dark-color, #444444);
+    }
+
+    .book-table tr:nth-child(even) {
+        background-color: var(--row-alt-dark-color, #2a2a2a);
+        /* Darker alternate row */
+    }
+
+    .book-table tr:hover {
+        background-color: var(--row-hover-dark-color, #333333);
+        /* Subtle hover effect */
+    }
 }

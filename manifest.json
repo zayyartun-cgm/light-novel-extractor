@@ -15,12 +15,13 @@
       "js": ["content.js"]
     }
   ],
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
   "background": {
     "scripts": ["background.js", "jszip.min.js"]
-  },
-  "browser_action": {
-    "default_title": "Light Novel Extractor",
-    "default_popup": "popup/popup.html"
   },
   "web_accessible_resources": ["icons/screen-record.svg", "icons/delete_forever.svg", "icons/menu_book.svg", "icons/radio_button_checked.svg", "background.js", "jszip.min.js"]
 }

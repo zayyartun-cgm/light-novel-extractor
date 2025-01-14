@@ -1,9 +1,6 @@
-let isRecording = false;
+let isSaving = false;
 
 function showToast(message) {
-  // Remove any existing toast messages
-  document.querySelectorAll(".extension-toast").forEach((toast) => toast.remove());
-
   // Create a new toast element
   const toast = document.createElement("div");
   toast.className = "extension-toast";
@@ -21,13 +18,20 @@ function showToast(message) {
   toast.style.fontSize = "14px";
   toast.style.zIndex = "9999";
   toast.style.opacity = "0";
-  toast.style.transition = "opacity 0.4s ease";
+  toast.style.transition = "opacity 0.4s ease, transform 0.4s ease";
 
   // Append the toast to the document body
   document.body.appendChild(toast);
 
   // Show the toast with a fade-in effect
   setTimeout(() => (toast.style.opacity = "1"), 0);
+
+  // Move existing toasts up
+  document.querySelectorAll(".extension-toast").forEach((existingToast) => {
+    if (existingToast !== toast) {
+      existingToast.style.transform = `translateY(-${toast.offsetHeight + 10}px)`;
+    }
+  });
 
   // Remove the toast after 3 seconds
   setTimeout(() => {
@@ -37,51 +41,19 @@ function showToast(message) {
 }
 
 async function extractContent() {
-  const title = document.title;
-  console.log(title);
-
-  if (title.toLowerCase().startsWith("just a moment...")) return;
-
-  const extractedTitle = title.split("|")[0].trim();
-  const extractedTitleParts = extractedTitle.split("-");
-
-  // Extract the novel name and full chapter name
-  let novelName = extractedTitleParts[0].trim(); // Default to the first part
-  let fullChapterName = extractedTitleParts[1]?.trim() || ""; // Default to empty if undefined
-
-  // Check if the first part contains "Book" and adjust the novel name accordingly
-  if (novelName.toLowerCase().includes("book")) {
-    // Merge the book title with the novel name
-    novelName = `${extractedTitleParts[0].trim()} ${extractedTitleParts[1]?.trim() || ""}`.replace(/\s+/, " ");
-    fullChapterName = extractedTitleParts[2]?.trim() || ""; // Move to the next part for chapter name
-  }
-
-  // Extract chapter number and name from the full chapter name
-  let chapterName = "";
-  let chapterNo = 0;
-
-  console.log("Full Chapter Name:", fullChapterName);
-  if (fullChapterName) {
-    const chapterNameParts = fullChapterName.match(/Chapter\s*(\d+):?\s*(.*)?/i); // Use regex for better matching
-
-    console.log(chapterNameParts);
-    if (chapterNameParts) {
-      chapterNo = parseInt(chapterNameParts[1], 10) || 0; // Extract chapter number
-      chapterName = chapterNameParts[2]?.trim() || ""; // Extract chapter name
-    } else {
-      console.error("The chapter number cannot be extracted");
-      return;
-    }
-  }
-
-  console.log("Novel Name:", novelName);
-  console.log("Chapter Number:", chapterNo);
-  console.log("Chapter Name:", chapterName);
-
+  let bookTitle = document.getElementsByClassName("booktitle")[0]?.textContent.trim();
+  const chapterTitle = document.getElementsByClassName("chapter-title")[0]?.textContent.trim();
   const contentDiv = document.getElementById("chapter-container");
-  if (!contentDiv) {
-    console.error("The content cannot be extracted");
-    return;
+
+  if (!bookTitle || !chapterTitle || !contentDiv) return;
+
+  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*(\d+):?\s*(.*)?/i);
+  const chapterNo = parseInt(chapterTitleParts[1], 10);
+  const chapterName = chapterTitleParts[2]?.trim() || "";
+
+  if (!chapterTitle.trim().toLowerCase().startsWith("chapter")) {
+    const frontPart = chapterTitle.split(chapterTitleParts[0])[0].trim();
+    bookTitle = `${bookTitle} ${frontPart}`.replace(/[\\/:?"<>|]/g, "");
   }
 
   const paragraphs = contentDiv.querySelectorAll("p");
@@ -89,46 +61,70 @@ async function extractContent() {
     .map((p) => p.textContent.trim())
     .join("\n");
 
-  // Retrieve existing data
   const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
-  let addNew = true;
-  for (let i = 0; i < existingData.length; i++) {
-    if (existingData[i].chapter === chapterName && existingData[i].name === novelName) {
-      addNew = false;
-      break;
-    }
+  const index = existingData.findIndex((item) => item.name === bookTitle);
+
+  if (index === -1) {
+    existingData.push({ name: bookTitle, data: [{ no: chapterNo, chapter: chapterName, content: content }] });
+  } else {
+    const isExist = existingData[index].data.some((item) => item.no === chapterNo && item.chapter === chapterName);
+    if (!isExist) existingData[index].data.push({ no: chapterNo, chapter: chapterName, content: content });
+    existingData[index].data.sort((a, b) => a.no - b.no);
   }
-  if (addNew) existingData.push({ name: novelName, no: chapterNo, chapter: chapterName, content: content });
 
-  existingData.sort((a, b) => a.no - b.no);
-  console.log(existingData);
-  await browser.storage.local.set({ novelData: existingData, recording: isRecording });
+  await browser.storage.local.set({ novelData: existingData, recording: isSaving });
+  showToast(`Saved: ${bookTitle} - ${chapterName}`);
+}
 
-  const no = existingData.map((item) => item.no);
-  browser.runtime.sendMessage({ command: "result", data: { recording: isRecording, no: no } });
+async function clearCurrentBook() {
+  let bookTitle = document.getElementsByClassName("booktitle")[0]?.textContent.trim();
+  const chapterTitle = document.getElementsByClassName("chapter-title")[0]?.textContent.trim();
+
+  if (!bookTitle || !chapterTitle) return;
+  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*(\d+):?\s*(.*)?/i);
+
+  if (!chapterTitle.trim().toLowerCase().startsWith("chapter")) {
+    const frontPart = chapterTitle.split(chapterTitleParts[0])[0].trim();
+    bookTitle = `${bookTitle} ${frontPart}`.replace(/[\\/:?"<>|]/g, "");
+  }
+
+  const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
+  const index = existingData.findIndex((item) => item.name === bookTitle);
+  if (index !== -1) {
+    existingData.splice(index, 1);
+    showToast(`Cleared: ${bookTitle}`);
+  }
+
+  await browser.storage.local.set({ novelData: existingData, recording: isSaving });
 }
 
 async function initialize() {
-  isRecording = (await browser.storage.local.get("recording")).recording ?? false;
-  if (isRecording) await extractContent();
+  isSaving = (await browser.storage.local.get("recording")).recording ?? false;
+  if (isSaving) await extractContent();
+}
+
+async function updateRecordingStatus() {
+  const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
+  await browser.storage.local.set({ recording: isSaving, novelData: existingData });
 }
 
 initialize();
 
 browser.runtime.onMessage.addListener(async (message) => {
   if (message.command === "clear-all") {
-    await browser.storage.local.set({ recording: isRecording, novelData: [] });
-    const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
-    console.log(existingData);
-    showToast("All saved pages cleared.");
-  } else if (message.command === "start-recording") {
-    isRecording = true;
+    await browser.storage.local.set({ recording: isSaving, novelData: [] });
+    showToast("All saved books cleared.");
+  } else if (message.command === "start-saving") {
+    isSaving = true;
     await extractContent();
+    browser.runtime.sendMessage({ command: "result", data: { recording: isSaving } });
     showToast("Recording started.");
-  } else if (message.command === "stop-recording") {
-    isRecording = false;
-    await extractContent();
+  } else if (message.command === "stop-saving") {
+    isSaving = false;
+    await updateRecordingStatus();
     showToast("Recording stopped.");
+  } else if (message.command === "clear-current") {
+    await clearCurrentBook();
   } else if (message.command === "extract-epub") {
     const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
     if (existingData.length > 0) {

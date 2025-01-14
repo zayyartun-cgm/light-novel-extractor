@@ -3,8 +3,8 @@ let coverImage;
 
 // Create a context menu
 browser.contextMenus.create({
-  id: "record",
-  title: "Start Recording",
+  id: "save",
+  title: "Start Saving",
   icons: {
     16: "/icons/screen_record.svg",
     32: "/icons/screen_record.svg",
@@ -18,12 +18,22 @@ browser.contextMenus.create({
   contexts: ["page"],
 });
 
+// browser.contextMenus.create({
+//   id: "extract-epub",
+//   title: "Extract EPUB",
+//   icons: {
+//     16: "/icons/menu_book.svg",
+//     32: "/icons/menu_book.svg",
+//   },
+//   contexts: ["page"],
+// });
+
 browser.contextMenus.create({
-  id: "extract-epub",
-  title: "Extract EPUB",
+  id: "clear-current",
+  title: "Clear Current Book",
   icons: {
-    16: "/icons/menu_book.svg",
-    32: "/icons/menu_book.svg",
+    16: "/icons/delete.svg",
+    32: "/icons/delete.svg",
   },
   contexts: ["page"],
 });
@@ -44,22 +54,42 @@ browser.contextMenus.create({
   contexts: ["page"],
 });
 
+browser.contextMenus.create({
+  id: "separator-3",
+  type: "separator",
+  contexts: ["page"],
+});
+
+browser.contextMenus.create({
+  id: "saved-items",
+  title: "Show Saved Items",
+  icons: {
+    16: "/icons/description.svg",
+    32: "/icons/description.svg",
+  },
+  contexts: ["page"],
+});
+
 // Add a listener for when the menu item is clicked
 browser.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "record") {
+  if (info.menuItemId === "save") {
     // Send a message to the content script
-    if (isRecording) browser.tabs.sendMessage(tab.id, { command: "stop-recording" });
-    else browser.tabs.sendMessage(tab.id, { command: "start-recording" });
+    if (isRecording) browser.tabs.sendMessage(tab.id, { command: "stop-saving" });
+    else browser.tabs.sendMessage(tab.id, { command: "start-saving" });
+  } else if (info.menuItemId === "clear-current") {
+    browser.tabs.sendMessage(tab.id, { command: "clear-current" });
   } else if (info.menuItemId === "clear-all") {
     browser.tabs.sendMessage(tab.id, { command: "clear-all" });
   } else if (info.menuItemId === "extract-epub") {
     browser.tabs.sendMessage(tab.id, { command: "extract-epub" });
+  } else if (info.menuItemId === "saved-items") {
+    browser.tabs.create({ url: browser.runtime.getURL("html/saved_item.html") });
   }
 });
 
 function updateRecordingSubmenu(isRecording) {
-  browser.contextMenus.update("record", {
-    title: isRecording ? "Stop Recording" : "Start Recording",
+  browser.contextMenus.update("save", {
+    title: isRecording ? "Stop Saving" : "Start Saving",
     icons: {
       16: isRecording ? "/icons/radio_button_checked.svg" : "/icons/screen_record.svg",
       32: isRecording ? "/icons/radio_button_checked.svg" : "/icons/screen_record.svg",

@@ -1,0 +1,30 @@
+:root {
+    --text-primary-color: black;
+}
+
+html,
+body {
+    padding: 0;
+    margin: 0;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    justify-content: center;
+}
+
+.header h1 {
+    text-align: center;
+}
+
+.header-buttons {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.header-buttons button:first-of-type {
+    margin-right: 50px;
+}

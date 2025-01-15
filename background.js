@@ -1,5 +1,4 @@
 let isRecording = false;
-let coverImage;
 
 // Create a context menu
 browser.contextMenus.create({
@@ -17,16 +16,6 @@ browser.contextMenus.create({
   type: "separator",
   contexts: ["page"],
 });
-
-// browser.contextMenus.create({
-//   id: "extract-epub",
-//   title: "Extract EPUB",
-//   icons: {
-//     16: "/icons/menu_book.svg",
-//     32: "/icons/menu_book.svg",
-//   },
-//   contexts: ["page"],
-// });
 
 browser.contextMenus.create({
   id: "clear-current",
@@ -105,10 +94,10 @@ function updateRecordingSubmenu(isRecording) {
   });
 }
 
-async function generateEPUB(data) {
-  const bookName = data[0].name.replace(/[\\/:?"<>|]/g, "");
-  const startChapter = data[0].no;
-  const endChapter = data[data.length - 1].no;
+async function generateEPUB(novelData, coverImage) {
+  const bookName = novelData.name.replace(/[\\/:?"<>|]/g, "");
+  const startChapter = novelData.data[0].no;
+  const endChapter = novelData.data[novelData.data.length - 1].no;
   const uuid = crypto.randomUUID();
   const fileName = startChapter === endChapter ? `${bookName} (chapter - ${startChapter}).epub` : `${bookName} (${startChapter}-${endChapter}).epub`;
   const epubBookName = startChapter === endChapter ? `${bookName} (chapter - ${startChapter})` : `${bookName} (${startChapter}-${endChapter})`;
@@ -135,14 +124,14 @@ async function generateEPUB(data) {
   );
 
   // Add OEBPS/content.opf
-  const manifest = data
+  const manifest = novelData.data
     .map(
       (_, index) => `
       <item id="chapter${index + 1}.xhtml" href="Text/chapter${index + 1}.xhtml" media-type="application/xhtml+xml"/>`
     )
     .join("\n");
 
-  const spine = data.map((_, index) => `<itemref idref="chapter${index + 1}.xhtml"/>`).join("\n");
+  const spine = novelData.data.map((_, index) => `<itemref idref="chapter${index + 1}.xhtml"/>`).join("\n");
 
   zip.file(
     "OEBPS/content.opf",
@@ -175,7 +164,7 @@ async function generateEPUB(data) {
   );
 
   // Add OEBPS/toc.ncx
-  const navPoints = data
+  const navPoints = novelData.data
     .map(
       (item, index) => `
       <navPoint id="navPoint${index + 1}">
@@ -216,7 +205,7 @@ async function generateEPUB(data) {
         <nav epub:type="toc" style="padding: 0 8px;">
           <h2>Table of Contents</h2>
           <ul style="list-style-type: none; padding: 0;">
-            ${data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</a></li>`).join("\n")}
+            ${novelData.data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</a></li>`).join("\n")}
           </ul>
         </nav>
       </body>
@@ -248,7 +237,7 @@ async function generateEPUB(data) {
   );
 
   // Add chapter files
-  data.forEach((item, index) => {
+  novelData.data.forEach((item, index) => {
     const detailContent = item.content.split("\n");
     const contentElement = detailContent.map((item) => `<p style="text-align: justify;">${item}</p>`).join("");
 
@@ -289,15 +278,19 @@ browser.runtime.onMessage.addListener(async (message) => {
     isRecording = data.recording;
     updateRecordingSubmenu(isRecording);
   } else if (message.command === "epub") {
-    if (!coverImage) {
-      console.error("Cover image not available");
+    const data = message.data;
+    if (!data.novelData || !data.image) {
+      browser.runtime.sendMessage({ command: "error", data: "Invalid data" });
+      console.error("Data not available");
       return;
     }
-    isRecording = false;
-    updateRecordingSubmenu(isRecording);
-    const data = message.data;
-    await generateEPUB(data);
-  } else if (message.command === "set-cover-image") {
-    coverImage = message.image;
+
+    try {
+      await generateEPUB(data.novelData, data.image);
+      browser.runtime.sendMessage({ command: "delete-book", data: data.novelData.name });
+    } catch (error) {
+      console.error(error);
+      browser.runtime.sendMessage({ command: "error", data: "Failed to generate EPUB" });
+    }
   }
 });

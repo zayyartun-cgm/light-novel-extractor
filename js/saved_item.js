@@ -1,5 +1,46 @@
+function showToast(message) {
+  // Create a new toast element
+  const toast = document.createElement("div");
+  toast.className = "extension-toast";
+  toast.innerText = message;
+
+  // Apply basic styling
+  toast.style.position = "fixed";
+  toast.style.bottom = "12px";
+  toast.style.right = "12px";
+  toast.style.background = "rgba(0, 0, 0, 0.8)";
+  toast.style.color = "#fff";
+  toast.style.padding = "10px 15px";
+  toast.style.borderRadius = "5px";
+  toast.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
+  toast.style.fontSize = "14px";
+  toast.style.zIndex = "9999";
+  toast.style.opacity = "0";
+  toast.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+
+  // Append the toast to the document body
+  document.body.appendChild(toast);
+
+  // Show the toast with a fade-in effect
+  setTimeout(() => (toast.style.opacity = "1"), 0);
+
+  // Move existing toasts up
+  document.querySelectorAll(".extension-toast").forEach((existingToast) => {
+    if (existingToast !== toast) {
+      existingToast.style.transform = `translateY(-${toast.offsetHeight + 10}px)`;
+    }
+  });
+
+  // Remove the toast after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const novelData = (await browser.storage.local.get("novelData")).novelData || [];
+  console.log(novelData);
 
   const deleteAllButton = document.getElementById("btn-delete-all");
   deleteAllButton.addEventListener("click", async () => {
@@ -14,6 +55,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 browser.storage.local.onChanged.addListener(async (changes) => {
   if (changes.novelData) {
     await updateBookTable(changes.novelData.newValue);
+  }
+});
+
+browser.runtime.onMessage.addListener(async (message) => {
+  if (message.command === "delete-book" && message.data) {
+    await deleteBook(message.data);
+  } else if (message.command === "error") {
+    if (message.data === "Invalid data") {
+      showToast("Invalid book data.");
+    }
   }
 });
 
@@ -58,7 +109,13 @@ function createBookRow(bookData, no) {
 
   actionCell.querySelector(".btn-extract").addEventListener("click", async (event) => {
     const bookName = event.currentTarget.getAttribute("data-book-name");
-    console.log(bookName);
+    const existingStorage = await browser.storage.local.get();
+    const existingData = existingStorage?.novelData.find((item) => item.name === bookName);
+    if (!existingData) {
+      showToast(`Book data not found.`);
+      return;
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -68,6 +125,8 @@ function createBookRow(bookData, no) {
       if (file) {
         const reader = new FileReader();
         reader.onload = async () => {
+          browser.runtime.sendMessage({ command: "epub", data: { novelData: existingData, image: reader.result } });
+          showToast("Extracting EPUB File...");
           // Send the base64 image back to the background script
           //   browser.runtime.sendMessage({
           //     command: "set-cover-image",
@@ -83,7 +142,7 @@ function createBookRow(bookData, no) {
 
     // Detect when the dialog is closed without selecting a file
     input.addEventListener("cancel", () => {
-      //   showToast("You need to upload the cover image."); // Show message if no file is selected
+        showToast("You need to upload the cover image."); // Show message if no file is selected
     });
 
     input.click(); // Trigger the file input

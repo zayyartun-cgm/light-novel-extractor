@@ -47,8 +47,8 @@ async function extractContent() {
 
   if (!bookTitle || !chapterTitle || !contentDiv) return;
 
-  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*(\d+):?\s*(.*)?/i);
-  const chapterNo = parseInt(chapterTitleParts[1], 10);
+  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*(\d+(?:\.\d+)?):?\s*(.*)?/i);
+  const chapterNo = parseFloat(chapterTitleParts[1], 10);
   const chapterName = chapterTitleParts[2]?.trim() || "";
 
   if (!chapterTitle.trim().toLowerCase().startsWith("chapter")) {

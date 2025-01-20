@@ -58,7 +58,10 @@ async function extractContent() {
 
   const paragraphs = contentDiv.querySelectorAll("p");
   const content = Array.from(paragraphs)
-    .map((p) => p.textContent.trim())
+    .map((p) => {
+      console.log(p.textContent.replace(/[\\/:?"<>|]/g, "").trim());
+      return p.textContent.replace(/[\\/:?"<>|]/g, "").trim();
+    })
     .join("\n");
 
   const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];

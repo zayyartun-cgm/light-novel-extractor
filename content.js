@@ -82,8 +82,10 @@ async function extractContent() {
 
 function moveToNextPage() {
   const nextPageElement = document.getElementsByClassName("nextchap")[0];
-  if(nextPageElement) {
-    nextPageElement.click();
+  if (nextPageElement) {
+    setTimeout(() => {
+      nextPageElement.click();
+    }, 1000);
   }
 }
 

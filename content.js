@@ -40,6 +40,12 @@ function showToast(message) {
   }, 3000);
 }
 
+function escapeHTML(str) {
+  if (!str) return "";
+
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").replace(/\[/g, "&#91;").replace(/\]/g, "&#93;");
+}
+
 async function extractContent() {
   let bookTitle = document.getElementsByClassName("booktitle")[0]?.textContent.trim();
   const chapterTitle = document.getElementsByClassName("chapter-title")[0]?.textContent.trim();
@@ -47,9 +53,9 @@ async function extractContent() {
 
   if (!bookTitle || !chapterTitle || !contentDiv) return;
 
-  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*(\d+(?:\.\d+)?):?\s*(.*)?/i);
-  const chapterNo = parseFloat(chapterTitleParts[1], 10);
-  const chapterName = chapterTitleParts[2]?.trim() || "";
+  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*([\w\d.]+):?\s*(.*)?/i);
+  const chapterNo = escapeHTML(chapterTitleParts[1]);
+  const chapterName = escapeHTML(chapterTitleParts[2]?.trim() || "");
 
   if (!chapterTitle.trim().toLowerCase().startsWith("chapter")) {
     const frontPart = chapterTitle.split(chapterTitleParts[0])[0].trim();
@@ -58,7 +64,7 @@ async function extractContent() {
 
   const paragraphs = contentDiv.querySelectorAll("p");
   const content = Array.from(paragraphs)
-    .map((p) => p.textContent.replace(/[<>]/g, "").trim())
+    .map((p) => escapeHTML(p.textContent.trim()))
     .join("\n");
 
   const existingData = (await browser.storage.local.get("novelData")).novelData ?? [];
@@ -71,7 +77,6 @@ async function extractContent() {
     const isExist = existingData[index].data.some((item) => item.no === chapterNo && item.chapter === chapterName);
     if (!isExist) {
       existingData[index].data.push({ no: chapterNo, chapter: chapterName, content: content });
-      existingData[index].data.sort((a, b) => a.no - b.no);
       showToast(`Saved: ${bookTitle} - Chapter ${chapterNo}`);
     }
   }
@@ -80,13 +85,23 @@ async function extractContent() {
   moveToNextPage();
 }
 
-function moveToNextPage() {
+function moveToNextPage(attempt = 1) {
   const nextPageElement = document.getElementsByClassName("nextchap")[0];
-  if (nextPageElement) {
+
+  if (!nextPageElement) return;
+
+  const rand = Math.floor(Math.random() * 2) + 1;
+  setTimeout(() => {
+    nextPageElement.click();
+
+    // Check if still on the same page after 2 seconds
     setTimeout(() => {
-      nextPageElement.click();
-    }, 1000);
-  }
+      if (document.getElementsByClassName("nextchap")[0] && attempt < 3) {
+        console.log(`Retrying attempt ${attempt + 1}...`);
+        moveToNextPage(attempt + 1);
+      }
+    }, 2000);
+  }, 1000 * rand);
 }
 
 async function clearCurrentBook() {

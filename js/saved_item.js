@@ -171,6 +171,7 @@ async function deleteBook(bookName) {
 }
 
 function formatChapters(chapterData) {
+  return chapterData.length;
   if (!chapterData || chapterData.length === 0) return "";
 
   const chapterNumbers = chapterData.map((chapter) => chapter.no).sort((a, b) => a - b);

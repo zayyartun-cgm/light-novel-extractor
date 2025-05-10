@@ -90,7 +90,7 @@ function moveToNextPage(attempt = 1) {
 
   if (!nextPageElement) return;
 
-  const rand = Math.floor(Math.random() * 2) + 1;
+  const rand = Math.floor(Math.random() * 1500) + 100;
   setTimeout(() => {
     nextPageElement.click();
 
@@ -101,7 +101,7 @@ function moveToNextPage(attempt = 1) {
         moveToNextPage(attempt + 1);
       }
     }, 2000);
-  }, 1000 * rand);
+  }, rand);
 }
 
 async function clearCurrentBook() {

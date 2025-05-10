@@ -146,9 +146,10 @@ async function generateEPUB(novelData, coverImage) {
         <meta name="cover" content="cover"/>
       </metadata>
       <manifest>
-        <item id="titlepage.xhtml" href="Text/titlepage.xhtml" media-type="application/xhtml+xml"/>
+        <item id="titlepage.xhtml" href="Text/titlepage.xhtml" media-type="application/xhtml+xml" properties="svg"/>
         <item id="toc" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
         <item id="nav.xhtml" href="Text/nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+        <item id="cover" href="Images/cover.${imageExtension}" media-type="${imageType}"/>
         ${manifest}
       </manifest>
       <spine page-progression-direction="ltr" toc="toc">
@@ -204,9 +205,9 @@ async function generateEPUB(novelData, coverImage) {
       <body>
         <nav epub:type="toc" style="padding: 0 8px;">
           <h2>Table of Contents</h2>
-          <ul style="list-style-type: none; padding: 0;">
+          <ol style="list-style-type: none; padding: 0;">
             ${novelData.data.map((item, index) => `<li><a href="chapter${index + 1}.xhtml" style="text-decoration: none; color: black; line-height: 30px;">Chapter ${item.no}${item.chapter ? `: ${item.chapter}` : ""}</a></li>`).join("\n")}
-          </ul>
+          </ol>
         </nav>
       </body>
     </html>`

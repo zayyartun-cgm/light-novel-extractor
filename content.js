@@ -53,7 +53,7 @@ async function extractContent() {
 
   if (!bookTitle || !chapterTitle || !contentDiv) return;
 
-  const chapterTitleParts = chapterTitle.match(/[Cc]hapter\s*([\w\d.]+):?\s*(.*)?/i);
+  const chapterTitleParts = chapterTitle.match(/[Cc]hapter(?:\s*([\w\d.]+))?:?\s*(.*)?/i);
   const chapterNo = escapeHTML(chapterTitleParts[1]);
   const chapterName = escapeHTML(chapterTitleParts[2]?.trim() || "");
 

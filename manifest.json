@@ -7,11 +7,11 @@
   "manifest_version": 2,
   "name": "Light Novel Extractor",
   "version": "1.0",
-  "description": "Extract light novel content from lightnovelworld.com and generate EPUB file",
+  "description": "Extract light novel content from novelfire.net and generate EPUB file",
   "permissions": ["activeTab", "storage", "unlimitedStorage", "contextMenus", "downloads"],
   "content_scripts": [
     {
-      "matches": ["*://www.lightnovelworld.com/*"],
+      "matches": ["*://novelfire.net/*"],
       "js": ["content.js"]
     }
   ],
